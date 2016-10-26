@@ -1,244 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>列车时刻表查询</title>
-
-    <!-- 下行作用，初始化移动端设备显示 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="css/jquery.mobile-1.4.3.css"/>
+	<meta charset="utf-8">
+	<title>嫦娥动画-鼠标hover特效</title>
+	<style type="text/css">
+		body{
+		  color: #fff;
+		  background:#000;
+		}
+		h1{
+			font-size: 14px;
+			font-family: "Microsoft Yahei";
+			text-align: center;
+		}
+		.change{
+		  display:block;
+		  width:400px;
+		  height:400px;
+		  background:url(http://p3.qhimg.com/t0134c65e59012a1257.png) no-repeat center;
+		  background-size:cover;
+		  border:1em solid rgba(255,255,255,.8);
+		  margin:50px auto;
+		}
+		.change img{
+		  display:block;
+		  width:300px;
+		  height:284px;
+		  opacity:0;
+		  -webkit-transform:translate(-100px,-100px);
+		  -webkit-transition:opacity 1s ease-in-out 0.5s,-webkit-transform 1s ease-in-out;
+		  transition: opacity 1s ease-in-out 0.5s,transform 1s ease-in-out;
+		}
+		.change:hover img{
+		  -webkit-transform:translate(0px,0px);
+		  opacity:1;
+		  -webkit-transition: opacity 1s ease-in-out,-webkit-transform 1s ease-in-out .1s;
+		  transition: opacity 1s ease-in-out,transform 1s ease-in-out .1s;
+		}
+	</style>
 </head>
-
 <body>
-
-
-<!-- 首页 -->
-<div data-role="page" id="index">
-
-    <div data-role="header" data-position="fixed">
-        <h1>列车时刻表查询</h1>
-    </div>
-
-    <div role="main" class="ui-content">
-        <div class="ui-field-contain">
-            <label>发车站:</label>
-            <input type="text" name="text-basic" id="search-begin" value="">
-        </div>
-        <div class="ui-field-contain">
-            <label>终点站:</label>
-            <input type="text" name="text-basic" id="search-end" value="">
-        </div>
-        <div class="ui-field-contain">
-            <label>车次:</label>
-            <input type="text" name="text-basic" id="search-no" value="">
-        </div>
-        <input type="button" value="搜索" id="search-submit">
-        <ul data-role="listview" data-inset="true" id="list">
-        </ul>
-    </div>
-
-    <div data-role="footer">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#" data-icon="grid" class="ui-btn-active">查询</a></li>
-                <li><a href="#" data-icon="star">收藏</a></li>
-                <li><a href="#" data-icon="gear">设置</a></li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-
-<!-- 查询结果页 -->
-<div data-role="page" id="detail">
-
-    <div data-role="header" data-position="fixed">
-        <h1>列车时刻表查询</h1>
-    </div>
-
-    <div role="main" class="ui-content">
-        <h2></h2>
-        <table data-role="table" id="movie-table" data-mode="reflow" class="ui-responsive">
-            <thead>
-            <tr>
-                <th data-priority="1">站名</th>
-                <th data-priority="persist">到站时间</th>
-                <th data-priority="persist">出发时间</th>
-            </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-        <a href="#" class="ui-btn ui-corner-all" data-rel="back">返回</a>
-    </div>
-
-    <div data-role="footer">
-        <div data-role="navbar">
-            <ul>
-                <li><a href="#" data-icon="grid" class="ui-btn-active">查询</a></li>
-                <li><a href="#" data-icon="star">收藏</a></li>
-                <li><a href="#" data-icon="gear">设置</a></li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-
-
-<script src="js/jquery-1.11.1.js"></script>
-<script src="js/jquery.mobile-1.4.3.js"></script>
-
-
-<script>
-    // var urlPre = "http://www.corsproxy.com/"; //跨域中转
-    var urlPre = "http://cors.itxti.net/?";
-    
-    // 提供站点，查询 站点
-    var url1 = "ws.webxml.com.cn/WebServices/TrainTimeWebService.asmx/getStationAndTimeByStationName?UserID=";
-
-    // 提供车号，查询 站点 时间 
-    var url2 = "ws.webxml.com.cn/WebServices/TrainTimeWebService.asmx/getStationAndTimeDataSetByLikeTrainCode?UserID=";
-
-    // 提供车号，查询详情
-    var url3 = "ws.webxml.com.cn/WebServices/TrainTimeWebService.asmx/getDetailInfoByTrainCode?UserID=";
-    
-    var isbind = 0;
-
-    var isAjax=false;
-
-
-    // pageshow事件，页面显示。
-    $(document).on("pageshow", "#index", function () {
-        if (isbind) return
-        isbind = 1;
-        bindEvent();
-    });
-
-    //绑定事件
-    var bindEvent = function () {
-
-         //获取车次列表
-        $("#search-submit").on("click", getTrainList);
-
-        //获取详情
-        $("#list").on("click", "a", getInfoByTrainCode);
-    };
-
-    
-
-    //获取车次列表
-    var getTrainList = function () {
-
-        //数据校验
-        //列车查询逻辑，要么输入查询车次，要么输入起始站和终点站
-        if ($("#search-no").val() || ($("#search-begin").val() && $("#search-end").val())) {
-
-            var searchButton = $(this);
-            searchButton.button("option", "disabled", true);
-
-            // 显示加载提示滚动的小圆圈
-            $.mobile.loading("show");
-
-            var _data = {};
-            var _url = url1;
-
-            if (!$("#search-no").val()) {
-                _data.StartStation = $("#search-begin").val();
-                _data.ArriveStation = $("#search-end").val();
-            } else {
-                _data.TrainCode = $("#search-no").val();
-                _url = url2;
-            }
-
-            $.get(urlPre + _url, _data,
-                    function (data) {
-                        $("#list").html("");
-                        var list = $("#list");
-                        var timeTables = $(data).find("TimeTable");
-
-                        var _arr = [];
-                        timeTables.each(function (index, obj) {
-                            var i = index;
-                            if (i > 10) return false; //只载入前10条
-
-                            var that = $(this);
-                            if (that.find("FirstStation").text() == "数据没有被发现") {
-                                alert("数据没有被发现！");
-                                return false;
-                            }
-
-                            _arr.push('<li><a href="#" data-no="' + that.find("TrainCode").text() + '">' +
-                                    '<h2>' + that.find("TrainCode").text() + '次</h2>' +
-                                    '<p>' + that.find("FirstStation").text() + ' - ' + that.find("LastStation").text() + '</p>' +
-                                    '<p>用时：' + that.find("UseDate").text() + '</p>' +
-                                    '<p class="ui-li-aside">' + that.find("StartTime").text() + ' 开</p>' +
-                                    '</a></li>');
-
-                        });
-
-                        if (_arr.length > 0) {
-                            list.html(_arr.join(""));
-                            list.listview("refresh");
-                        }
-
-                        // 不显示加载提示滚动的小圆圈
-                        $.mobile.loading("hide");
-
-                        searchButton.button("option", "disabled", false);
-                    }
-                );
-        } else {
-            alert("请输入发车站和终点站\n或输入车次！");
-        }
-    };
-
-    
-
-
-
-
-    //获取详情
-    var getInfoByTrainCode = function () {
-
-        // 显示加载提示滚动的小圆圈
-        $.mobile.loading("show");
-
-        // attr() 方法设置或返回被选元素的属性值。根据该方法不同的参数，其工作方式也有所差异。
-        var trainCode = $(this).attr("data-no");
-        
-        if(isAjax) return;
-        isAjax=true
-
-        $.get(urlPre + url3,
-                {
-                    TrainCode: trainCode
-                },
-                function (data) {
-                    isAjax=false;
-                    $("#detail").find(".ui-content h2").html(trainCode + "次");
-
-                    var tbody = $("#detail").find(".ui-content tbody");
-                    tbody.html("");
-
-                    $(data).find("TrainDetailInfo").each(function (index, obj) {
-                        var tr = $("<tr></tr>");
-                        var that = $(this);
-                        tr.html('<td>' + that.find("TrainStation").text() + '</td>' +
-                                '<td>' + that.find("ArriveTime").text() + '</td>' +
-                                '<td>' + that.find("StartTime").text() + '</td>');
-                        tbody.append(tr);
-                    });
-
-                    // 不显示加载提示滚动的小圆圈
-                    $.mobile.loading("hide");
-
-                    $.mobile.changePage("#detail");
-                });
-
-    };
-
-   
-
-</script>
+	<h1>请使用webkit内核标准浏览器查看效果</h1>
+	<a href="http://image.haosou.com/i?q=%E5%AB%A6%E5%A8%A5png&src=tab_www" class="change " target="_blank">
+  		<img src="http://p4.qhimg.com/t0160e6a92121691e22.png" alt="" />
+	</a>
 </body>
 </html>
